@@ -3592,19 +3592,15 @@ static void discard_stale(void)
  */
 int restart_wait(unsigned int mstime)
 {
-	struct timeval now, then, tdiff;
-	struct timespec abstime;
+	struct timespec ts_start, ts_end;
 	int rc;
 
-	tdiff.tv_sec = mstime / 1000;
-	tdiff.tv_usec = mstime * 1000 - (tdiff.tv_sec * 1000000);
-	cgtime(&now);
-	timeradd(&now, &tdiff, &then);
-	abstime.tv_sec = then.tv_sec;
-	abstime.tv_nsec = then.tv_usec * 1000;
+	clock_gettime(CLOCK_MONOTONIC, &ts_start);
+	ms_to_timespec(&ts_end, mstime);
+	timeraddspec(&ts_end, &ts_start);
 
 	mutex_lock(&restart_lock);
-	rc = pthread_cond_timedwait(&restart_cond, &restart_lock, &abstime);
+	rc = pthread_cond_timedwait(&restart_cond, &restart_lock, &ts_end);
 	mutex_unlock(&restart_lock);
 
 	return rc;
